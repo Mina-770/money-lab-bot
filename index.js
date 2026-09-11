@@ -4,514 +4,1268 @@ const { createClient } = require("@supabase/supabase-js");
 const app = express();
 app.use(express.json());
 
-// ====================
-// Supabase
-// ====================
+const PORT = process.env.PORT || 3000;
+
+const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
+const CHANNEL_SECRET = process.env.CHANNEL_SECRET;
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
+  SUPABASE_URL,
+  SUPABASE_SECRET_KEY
 );
 
-// ====================
-// 分類設定
-// ====================
 
-const categories = [
-  {
-    name: "飲食",
-    emoji: "🍴",
-    keywords: [
-      "早餐", "午餐", "晚餐", "吃飯", "便當", "火鍋", "燒肉",
-      "拉麵", "麵", "飯", "早餐店", "餐廳", "小吃", "宵夜",
-      "飲料", "手搖", "珍奶", "咖啡", "茶", "可樂", "麥當勞",
-      "肯德基", "星巴克", "全家", "7-11", "711"
-    ]
-  },
-  {
-    name: "運動",
-    emoji: "💪",
-    keywords: [
-      "健身", "健身房", "重訓", "運動", "羽球", "籃球", "網球",
-      "游泳", "瑜伽", "瑜珈", "跑步", "球場", "教練", "課程"
-    ]
-  },
-  {
-    name: "日用品",
-    emoji: "🛒",
-    keywords: [
-      "全聯", "家樂福", "大潤發", "好市多", "costco",
-      "日用品", "生活用品", "衛生紙", "洗衣精", "洗髮精",
-      "沐浴乳", "牙膏", "清潔用品", "用品"
-    ]
-  },
-  {
-    name: "交通",
-    emoji: "🚗",
-    keywords: [
-      "捷運", "公車", "火車", "高鐵", "計程車", "uber", "油錢",
-      "加油", "停車", "停車費", "車資", "機車", "汽油", "交通"
-    ]
-  },
-  {
-    name: "房租",
-    emoji: "🏠",
-    keywords: [
-      "房租", "租金", "租屋", "房貸"
-    ]
-  },
-  {
-    name: "醫療",
-    emoji: "💊",
-    keywords: [
-      "看醫生", "醫生", "醫院", "診所", "掛號", "藥", "藥局",
-      "醫療", "看診", "牙醫", "健檢", "檢查"
-    ]
-  },
-  {
-    name: "娛樂",
-    emoji: "🎮",
-    keywords: [
-      "電影", "看電影", "遊戲", "遊樂園", "唱歌", "KTV",
-      "演唱會", "展覽", "旅遊", "景點", "娛樂", "Switch",
-      "PS5", "Steam"
-    ]
-  },
-  {
-    name: "服裝",
-    emoji: "👗",
-    keywords: [
-      "衣服", "褲子", "鞋子", "襪子", "衣", "服裝", "包包",
-      "帽子", "內衣", "Uniqlo", "GU"
-    ]
-  },
-  {
-    name: "社交",
-    emoji: "🍺",
-    keywords: [
-      "聚餐", "聚會", "喝酒", "酒", "請客", "朋友", "同事",
-      "社交", "酒吧", "生日聚餐"
-    ]
-  },
-  {
-    name: "禮物",
-    emoji: "🎁",
-    keywords: [
-      "禮物", "送禮", "生日禮物", "紅包", "伴手禮"
-    ]
-  },
-  {
-    name: "美容",
-    emoji: "💈",
-    keywords: [
-      "剪頭髮", "理髮", "染髮", "燙髮", "美髮", "美容",
-      "美甲", "美睫", "按摩", "護膚", "保養", "化妝品",
-      "洗頭"
-    ]
-  },
-  {
-    name: "其他",
-    emoji: "💰",
-    keywords: []
-  }
+// ============================================================
+// 分類
+// ============================================================
+
+const CATEGORIES = [
+  "🍴 飲食",
+  "💪 運動",
+  "🛒 日用品",
+  "🚗 交通",
+  "🏠 房租",
+  "💊 醫療",
+  "🎮 娛樂",
+  "👗 服裝",
+  "🍺 社交",
+  "🎁 禮物",
+  "💈 美容",
+  "💰 其他"
 ];
-
-// ====================
-// 自動判斷分類
-// ====================
 
 function getCategory(item) {
   const text = item.toLowerCase();
 
-  for (const category of categories) {
-    if (category.name === "其他") {
-      continue;
-    }
-
-    for (const keyword of category.keywords) {
-      if (text.includes(keyword.toLowerCase())) {
-        return category;
-      }
-    }
+  if (
+    text.includes("吃") ||
+    text.includes("餐") ||
+    text.includes("飯") ||
+    text.includes("麵") ||
+    text.includes("早餐") ||
+    text.includes("午餐") ||
+    text.includes("晚餐") ||
+    text.includes("飲料") ||
+    text.includes("咖啡") ||
+    text.includes("手搖") ||
+    text.includes("便當") ||
+    text.includes("早餐")
+  ) {
+    return "🍴 飲食";
   }
 
-  return categories.find(category => category.name === "其他");
+  if (
+    text.includes("健身") ||
+    text.includes("運動") ||
+    text.includes("羽球") ||
+    text.includes("籃球") ||
+    text.includes("足球") ||
+    text.includes("游泳") ||
+    text.includes("瑜伽") ||
+    text.includes("教練") ||
+    text.includes("健身房")
+  ) {
+    return "💪 運動";
+  }
+
+  if (
+    text.includes("衛生紙") ||
+    text.includes("洗衣") ||
+    text.includes("清潔") ||
+    text.includes("日用品") ||
+    text.includes("生活用品") ||
+    text.includes("洗髮") ||
+    text.includes("沐浴")
+  ) {
+    return "🛒 日用品";
+  }
+
+  if (
+    text.includes("捷運") ||
+    text.includes("公車") ||
+    text.includes("火車") ||
+    text.includes("高鐵") ||
+    text.includes("計程車") ||
+    text.includes("油錢") ||
+    text.includes("停車") ||
+    text.includes("加油")
+  ) {
+    return "🚗 交通";
+  }
+
+  if (
+    text.includes("房租") ||
+    text.includes("租金")
+  ) {
+    return "🏠 房租";
+  }
+
+  if (
+    text.includes("看醫生") ||
+    text.includes("醫院") ||
+    text.includes("診所") ||
+    text.includes("藥") ||
+    text.includes("醫療")
+  ) {
+    return "💊 醫療";
+  }
+
+  if (
+    text.includes("遊戲") ||
+    text.includes("電影") ||
+    text.includes("唱歌") ||
+    text.includes("ktv") ||
+    text.includes("娛樂") ||
+    text.includes("展覽")
+  ) {
+    return "🎮 娛樂";
+  }
+
+  if (
+    text.includes("衣服") ||
+    text.includes("鞋") ||
+    text.includes("褲") ||
+    text.includes("外套") ||
+    text.includes("服裝")
+  ) {
+    return "👗 服裝";
+  }
+
+  if (
+    text.includes("聚餐") ||
+    text.includes("聚會") ||
+    text.includes("社交") ||
+    text.includes("請客")
+  ) {
+    return "🍺 社交";
+  }
+
+  if (
+    text.includes("禮物") ||
+    text.includes("生日")
+  ) {
+    return "🎁 禮物";
+  }
+
+  if (
+    text.includes("剪髮") ||
+    text.includes("美髮") ||
+    text.includes("染髮") ||
+    text.includes("美容") ||
+    text.includes("美甲")
+  ) {
+    return "💈 美容";
+  }
+
+  return "💰 其他";
 }
 
-// ====================
-// 取得 LINE 使用者名稱
-// ====================
 
-async function getLineProfile(userId) {
+// ============================================================
+// LINE 使用者
+// ============================================================
 
-  if (!userId) {
-    return "未知使用者";
-  }
-
+async function getUserProfile(userId) {
   try {
-
     const response = await fetch(
       `https://api.line.me/v2/bot/profile/${userId}`,
       {
         headers: {
-          "Authorization":
-            `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
         }
       }
     );
 
     if (!response.ok) {
-      return "未知使用者";
+      return userId;
     }
 
-    const profile = await response.json();
+    const data = await response.json();
 
-    return profile.displayName || "未知使用者";
+    return data.displayName || userId;
 
   } catch (error) {
-
-    console.error("取得 LINE 使用者名稱失敗：", error);
-
-    return "未知使用者";
+    console.error("取得 LINE 使用者資料失敗：", error);
+    return userId;
   }
 }
 
-// ====================
-// 判斷付款人
-// ====================
 
-function getPayer(userId, userName, itemText) {
+// ============================================================
+// LINE 回覆
+// ============================================================
 
-  const text = itemText.toLowerCase();
+async function replyMessage(replyToken, text) {
+  try {
+    const response = await fetch(
+      "https://api.line.me/v2/bot/message/reply",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+        },
+        body: JSON.stringify({
+          replyToken,
+          messages: [
+            {
+              type: "text",
+              text
+            }
+          ]
+        })
+      }
+    );
 
-  // KC 付款
-  if (
-    text.includes("kc付") ||
-    text.includes("kc 付") ||
-    text.includes("kc付款") ||
-    text.includes("kc 付款") ||
-    text.includes("kc付的") ||
-    text.includes("kc 付的")
-  ) {
-    return {
-      userId: "KC",
-      name: "KC"
-    };
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("LINE 回覆失敗：", errorText);
+    }
+
+  } catch (error) {
+    console.error("LINE 回覆錯誤：", error);
   }
+}
 
-  // 預設：傳訊息的人付款
+
+// ============================================================
+// 台灣時間
+// ============================================================
+
+function getTaiwanDateString(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
+
+function getTaiwanMonthString(date = new Date()) {
+  const dateString = getTaiwanDateString(date);
+  return dateString.substring(0, 7);
+}
+
+function getTaiwanTodayRange() {
+  const today = getTaiwanDateString();
+
+  const start = new Date(
+    `${today}T00:00:00+08:00`
+  );
+
+  const end = new Date(
+    start.getTime() + 24 * 60 * 60 * 1000
+  );
+
   return {
-    userId,
-    name: userName
+    start: start.toISOString(),
+    end: end.toISOString()
   };
 }
 
-// ====================
-// 清理項目名稱
-// ====================
+function getTaiwanMonthRange() {
+  const month = getTaiwanMonthString();
 
-function cleanItem(item) {
+  const start = new Date(
+    `${month}-01T00:00:00+08:00`
+  );
 
-  return item
-    .replace(/KC\s*付(款)?的?/gi, "")
-    .replace(/我\s*付(款)?的?/gi, "")
+  const nextMonth = new Date(start);
+  nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+  return {
+    start: start.toISOString(),
+    end: nextMonth.toISOString()
+  };
+}
+
+
+// ============================================================
+// 付款人
+// ============================================================
+
+function parsePayer(text, defaultUserId, defaultUserName) {
+  let payerUserId = defaultUserId;
+  let payerName = defaultUserName;
+
+  if (
+    /KC\s*付/.test(text) ||
+    /KC\s*付款/.test(text) ||
+    /KC\s*付的/.test(text)
+  ) {
+    payerUserId = "KC";
+    payerName = "KC";
+  }
+
+  return {
+    payerUserId,
+    payerName
+  };
+}
+
+
+// ============================================================
+// 清除付款人文字
+// ============================================================
+
+function cleanPayerText(text) {
+  return text
+    .replace(/KC\s*付款/g, "")
+    .replace(/KC\s*付的/g, "")
+    .replace(/KC\s*付/g, "")
     .trim();
 }
 
-// ====================
-// LINE Webhook
-// ====================
+
+// ============================================================
+// 一般記帳解析
+// ============================================================
+
+function parseExpenseLine(line) {
+  const match = line.match(
+    /^(.+?)\s*(\d+(?:\.\d+)?)\s*元?$/
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  let item = match[1].trim();
+  const amount = Number(match[2]);
+
+  item = cleanPayerText(item);
+
+  if (!item || !amount) {
+    return null;
+  }
+
+  return {
+    item,
+    amount
+  };
+}
+
+
+// ============================================================
+// 指令判斷
+// ============================================================
+
+function isTodayCommand(text) {
+  return [
+    "今天",
+    "今日",
+    "今天記帳",
+    "今日記帳"
+  ].includes(text.trim());
+}
+
+function isMonthCommand(text) {
+  return [
+    "本月",
+    "這個月",
+    "這月",
+    "本月記帳"
+  ].includes(text.trim());
+}
+
+function isStatsCommand(text) {
+  return [
+    "統計",
+    "支出統計",
+    "本月統計"
+  ].includes(text.trim());
+}
+
+
+// ============================================================
+// 查詢資料
+// ============================================================
+
+async function getRecordsByRange(
+  groupId,
+  start,
+  end
+) {
+  const { data, error } = await supabase
+    .from("records")
+    .select("*")
+    .eq("group_id", groupId)
+    .gte("transaction_date", start)
+    .lt("transaction_date", end)
+    .order("transaction_date", {
+      ascending: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+
+// ============================================================
+// 今天
+// ============================================================
+
+async function getTodayRecords(groupId) {
+  const { start, end } = getTaiwanTodayRange();
+
+  return await getRecordsByRange(
+    groupId,
+    start,
+    end
+  );
+}
+
+function formatTodayRecords(records) {
+  const expenses = records.filter(
+    record => record.type === "expense"
+  );
+
+  if (expenses.length === 0) {
+    return "🧾 今天還沒有記帳喔～";
+  }
+
+  let total = 0;
+
+  const lines = expenses.map(record => {
+    total += Number(record.amount);
+
+    return `${record.category} ${record.item} $${Number(
+      record.amount
+    ).toLocaleString()}｜${record.payer_name}付`;
+  });
+
+  return [
+    "🧾 今日記帳",
+    "",
+    ...lines,
+    "",
+    `💰 今日支出 $${total.toLocaleString()}`
+  ].join("\n");
+}
+
+
+// ============================================================
+// 本月
+// ============================================================
+
+async function getMonthRecords(groupId) {
+  const { start, end } = getTaiwanMonthRange();
+
+  return await getRecordsByRange(
+    groupId,
+    start,
+    end
+  );
+}
+
+function formatMonthRecords(records) {
+  const expenses = records.filter(
+    record => record.type === "expense"
+  );
+
+  if (expenses.length === 0) {
+    return "📅 本月還沒有支出喔～";
+  }
+
+  const total = expenses.reduce(
+    (sum, record) =>
+      sum + Number(record.amount),
+    0
+  );
+
+  return [
+    "📅 本月支出",
+    "",
+    `💰 總支出 $${total.toLocaleString()}`,
+    `🧾 共 ${expenses.length} 筆`,
+    "",
+    "📊 分類：",
+    formatCategorySummary(expenses)
+  ].join("\n");
+}
+
+
+// ============================================================
+// 分類統計
+// ============================================================
+
+function formatCategorySummary(records) {
+  const categoryTotals = {};
+
+  for (const record of records) {
+    const category = record.category || "💰 其他";
+
+    if (!categoryTotals[category]) {
+      categoryTotals[category] = 0;
+    }
+
+    categoryTotals[category] += Number(record.amount);
+  }
+
+  return Object.entries(categoryTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(
+      ([category, amount]) =>
+        `${category} $${amount.toLocaleString()}`
+    )
+    .join("\n");
+}
+
+
+// ============================================================
+// 統計
+// ============================================================
+
+function formatStats(records) {
+  const expenses = records.filter(
+    record => record.type === "expense"
+  );
+
+  const incomes = records.filter(
+    record => record.type === "income"
+  );
+
+  const expenseTotal = expenses.reduce(
+    (sum, record) =>
+      sum + Number(record.amount),
+    0
+  );
+
+  const incomeTotal = incomes.reduce(
+    (sum, record) =>
+      sum + Number(record.amount),
+    0
+  );
+
+  return [
+    "📊 本月統計",
+    "",
+    `💵 收入 $${incomeTotal.toLocaleString()}`,
+    `💸 支出 $${expenseTotal.toLocaleString()}`,
+    `💰 差額 $${(
+      incomeTotal - expenseTotal
+    ).toLocaleString()}`,
+    "",
+    "分類支出：",
+    expenses.length
+      ? formatCategorySummary(expenses)
+      : "目前沒有支出"
+  ].join("\n");
+}
+
+
+// ============================================================
+// 分類查詢
+// ============================================================
+
+function findCategory(text) {
+  return CATEGORIES.find(
+    category => text.trim() === category
+  );
+}
+
+async function getCategoryRecords(
+  groupId,
+  category
+) {
+  const { start, end } = getTaiwanMonthRange();
+
+  const { data, error } = await supabase
+    .from("records")
+    .select("*")
+    .eq("group_id", groupId)
+    .eq("type", "expense")
+    .eq("category", category)
+    .gte("transaction_date", start)
+    .lt("transaction_date", end)
+    .order("transaction_date", {
+      ascending: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+function formatCategoryRecords(
+  category,
+  records
+) {
+  if (records.length === 0) {
+    return `${category}\n\n本月還沒有這類支出喔～`;
+  }
+
+  const total = records.reduce(
+    (sum, record) =>
+      sum + Number(record.amount),
+    0
+  );
+
+  const lines = records.map(record =>
+    `${record.item} $${Number(
+      record.amount
+    ).toLocaleString()}｜${record.payer_name}付`
+  );
+
+  return [
+    `${category}｜本月`,
+    "",
+    ...lines,
+    "",
+    `💰 共 $${total.toLocaleString()}`
+  ].join("\n");
+}
+
+
+// ============================================================
+// 收入
+// ============================================================
+//
+// 用法：
+// 薪水30000
+// 收入 薪水30000
+//
+// ============================================================
+
+function parseIncome(text) {
+  let cleanText = text.trim();
+
+  cleanText = cleanText
+    .replace(/^收入\s*/i, "")
+    .trim();
+
+  const match = cleanText.match(
+    /^(.+?)\s*(\d+(?:\.\d+)?)\s*元?$/
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const item = match[1].trim();
+  const amount = Number(match[2]);
+
+  if (!item || !amount) {
+    return null;
+  }
+
+  return {
+    item,
+    amount
+  };
+}
+
+function isIncomeCommand(text) {
+  return /^收入\s*/.test(text);
+}
+
+
+// ============================================================
+// 轉帳
+// ============================================================
+//
+// 用法：
+// 我給KC500
+// 我給 KC 500
+//
+// ============================================================
+
+function parseTransfer(text) {
+  const match = text.match(
+    /^我給\s*([^\d\s]+)\s*(\d+(?:\.\d+)?)\s*元?$/
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const toName = match[1].trim();
+  const amount = Number(match[2]);
+
+  if (!toName || !amount) {
+    return null;
+  }
+
+  return {
+    toName,
+    amount
+  };
+}
+
+
+// ============================================================
+// 儲存收入
+// ============================================================
+
+async function saveIncome(
+  groupId,
+  userId,
+  userName,
+  item,
+  amount
+) {
+  const record = {
+    group_id: groupId,
+    user_id: userId,
+    user_name: userName,
+    payer_user_id: userId,
+    payer_name: userName,
+    item,
+    amount,
+    category: "💰 其他",
+    type: "income",
+    note: "收入",
+    participants: userName,
+    transaction_date: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("records")
+    .insert(record)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+// ============================================================
+// 儲存轉帳
+// ============================================================
+
+async function saveTransfer(
+  groupId,
+  userId,
+  userName,
+  toName,
+  amount
+) {
+  const record = {
+    group_id: groupId,
+    user_id: userId,
+    user_name: userName,
+    payer_user_id: userId,
+    payer_name: userName,
+    item: `轉給${toName}`,
+    amount,
+    category: "💰 其他",
+    type: "transfer",
+    note: `我給${toName}`,
+    participants: toName,
+    transaction_date: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("records")
+    .insert(record)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+// ============================================================
+// 儲存支出
+// ============================================================
+
+async function saveExpense(
+  groupId,
+  userId,
+  userName,
+  record,
+  originalText
+) {
+  const {
+    payerUserId,
+    payerName
+  } = parsePayer(
+    originalText,
+    userId,
+    userName
+  );
+
+  const category = getCategory(record.item);
+
+  const newRecord = {
+    group_id: groupId,
+    user_id: userId,
+    user_name: userName,
+    payer_user_id: payerUserId,
+    payer_name: payerName,
+    item: record.item,
+    amount: record.amount,
+    category,
+    type: "expense",
+    note: originalText,
+    participants: "shared",
+    transaction_date: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("records")
+    .insert(newRecord)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+// ============================================================
+// 支出回覆
+// ============================================================
+
+function formatSavedExpenses(records) {
+  const lines = records.map(record =>
+    `${record.category} ${record.item} $${Number(
+      record.amount
+    ).toLocaleString()}｜${record.payer_name}付`
+  );
+
+  const total = records.reduce(
+    (sum, record) =>
+      sum + Number(record.amount),
+    0
+  );
+
+  return [
+    "✅ 記帳成功！",
+    "",
+    ...lines,
+    "",
+    `💰 本次共 $${total.toLocaleString()}`
+  ].join("\n");
+}
+
+
+// ============================================================
+// 說明
+// ============================================================
+
+function getHelpMessage() {
+  return [
+    "💰 錢錢研究所",
+    "",
+    "📝 記帳",
+    "晚餐120",
+    "晚餐600 KC付",
+    "",
+    "🔎 查帳",
+    "今天",
+    "本月",
+    "統計",
+    "",
+    "📊 分類",
+    "🍴 飲食",
+    "💪 運動",
+    "🛒 日用品",
+    "🚗 交通",
+    "🏠 房租",
+    "💊 醫療",
+    "🎮 娛樂",
+    "👗 服裝",
+    "🍺 社交",
+    "🎁 禮物",
+    "💈 美容",
+    "",
+    "💵 收入",
+    "收入 薪水30000",
+    "",
+    "🔄 轉帳",
+    "我給KC500"
+  ].join("\n");
+}
+
+
+// ============================================================
+// Webhook
+// ============================================================
 
 app.post("/webhook", async (req, res) => {
-
   console.log("收到 LINE Webhook：", req.body);
 
-  const events = req.body.events || [];
+  res.status(200).send("OK");
 
-  for (const event of events) {
+  try {
+    const events = req.body.events || [];
 
-    if (
-      event.type !== "message" ||
-      event.message.type !== "text"
-    ) {
-      continue;
-    }
+    for (const event of events) {
+      if (event.type !== "message") {
+        continue;
+      }
 
-    const userMessage = event.message.text.trim();
+      if (event.message.type !== "text") {
+        continue;
+      }
 
-    console.log("使用者說：", userMessage);
+      const text = event.message.text.trim();
 
-    // ====================
-    // 使用者資訊
-    // ====================
+      const userId = event.source.userId;
 
-    const userId =
-      event.source?.userId || "unknown";
+      const groupId =
+        event.source.groupId ||
+        event.source.roomId ||
+        userId;
 
-    const groupId =
-      event.source?.groupId ||
-      event.source?.roomId ||
-      userId;
+      const userName =
+        await getUserProfile(userId);
 
-    const userName =
-      await getLineProfile(userId);
 
-    // ====================
-    // 一次可以輸入多筆
-    // ====================
+      // ======================================================
+      // HELP
+      // ======================================================
 
-    const lines = userMessage
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
+      if (
+        text === "幫助" ||
+        text === "說明" ||
+        text === "功能"
+      ) {
+        await replyMessage(
+          event.replyToken,
+          getHelpMessage()
+        );
 
-    const records = [];
-    const invalidLines = [];
+        continue;
+      }
 
-    // ====================
-    // 解析每一行
-    // ====================
 
-    for (const line of lines) {
+      // ======================================================
+      // 今天
+      // ======================================================
 
-      const match = line.match(
-        /^(.+?)\s*(\d+(?:\.\d+)?)\s*元?(.*)$/i
-      );
+      if (isTodayCommand(text)) {
+        try {
+          const records =
+            await getTodayRecords(groupId);
 
-      if (match) {
-
-        const originalItem = match[1].trim();
-        const amount = Number(match[2]);
-        const extraText = match[3].trim();
-
-        const fullItemText =
-          `${originalItem} ${extraText}`.trim();
-
-        const item = cleanItem(fullItemText);
-
-        const category =
-          getCategory(item);
-
-        const payer =
-          getPayer(
-            userId,
-            userName,
-            fullItemText
+          await replyMessage(
+            event.replyToken,
+            formatTodayRecords(records)
           );
 
-        records.push({
-          group_id: groupId,
-          user_id: userId,
-          user_name: userName,
+        } catch (error) {
+          console.error(
+            "查詢今天失敗：",
+            error
+          );
 
-          payer_user_id:
-            payer.userId,
+          await replyMessage(
+            event.replyToken,
+            "😵 查詢今天記帳時發生問題。"
+          );
+        }
 
-          payer_name:
-            payer.name,
-
-          item,
-          amount,
-
-          category:
-            category.name,
-
-          type: "expense",
-
-          note:
-            extraText || null,
-
-          // 目前先記錄為共享帳本
-          // 之後會進一步建立群組成員系統
-          participants: "shared",
-
-          transaction_date:
-            new Date().toISOString()
-        });
-
-      } else {
-
-        invalidLines.push(line);
+        continue;
       }
-    }
 
-    let replyText = "";
 
-    // ====================
-    // 沒有成功解析
-    // ====================
+      // ======================================================
+      // 本月
+      // ======================================================
 
-    if (records.length === 0) {
+      if (isMonthCommand(text)) {
+        try {
+          const records =
+            await getMonthRecords(groupId);
 
-      replyText =
-        "💰 我還看不懂這筆記帳～\n\n" +
-        "可以直接輸入：\n" +
-        "🍴 晚餐120\n" +
-        "🍴 飲料 50元\n" +
-        "🛒 全聯350\n\n" +
-        "如果是 KC 付的：\n" +
-        "🍴 晚餐600 KC付";
+          await replyMessage(
+            event.replyToken,
+            formatMonthRecords(records)
+          );
 
-    } else {
+        } catch (error) {
+          console.error(
+            "查詢本月失敗：",
+            error
+          );
 
-      // ====================
-      // 寫入 Supabase
-      // ====================
+          await replyMessage(
+            event.replyToken,
+            "😵 查詢本月記帳時發生問題。"
+          );
+        }
 
-      const { error } =
-        await supabase
-          .from("records")
-          .insert(records);
+        continue;
+      }
 
-      if (error) {
 
+      // ======================================================
+      // 統計
+      // ======================================================
+
+      if (isStatsCommand(text)) {
+        try {
+          const records =
+            await getMonthRecords(groupId);
+
+          await replyMessage(
+            event.replyToken,
+            formatStats(records)
+          );
+
+        } catch (error) {
+          console.error(
+            "統計失敗：",
+            error
+          );
+
+          await replyMessage(
+            event.replyToken,
+            "😵 統計時發生問題。"
+          );
+        }
+
+        continue;
+      }
+
+
+      // ======================================================
+      // 分類查詢
+      // ======================================================
+
+      const category =
+        findCategory(text);
+
+      if (category) {
+        try {
+          const records =
+            await getCategoryRecords(
+              groupId,
+              category
+            );
+
+          await replyMessage(
+            event.replyToken,
+            formatCategoryRecords(
+              category,
+              records
+            )
+          );
+
+        } catch (error) {
+          console.error(
+            "分類查詢失敗：",
+            error
+          );
+
+          await replyMessage(
+            event.replyToken,
+            "😵 查詢分類時發生問題。"
+          );
+        }
+
+        continue;
+      }
+
+
+      // ======================================================
+      // 收入
+      // ======================================================
+
+      if (isIncomeCommand(text)) {
+        const income =
+          parseIncome(text);
+
+        if (!income) {
+          await replyMessage(
+            event.replyToken,
+            "💵 收入格式可以這樣打：\n\n收入 薪水30000"
+          );
+
+          continue;
+        }
+
+        try {
+          await saveIncome(
+            groupId,
+            userId,
+            userName,
+            income.item,
+            income.amount
+          );
+
+          await replyMessage(
+            event.replyToken,
+            [
+              "✅ 收入記錄成功！",
+              "",
+              `💵 ${income.item} $${income.amount.toLocaleString()}`,
+              `👤 ${userName}`
+            ].join("\n")
+          );
+
+        } catch (error) {
+          console.error(
+            "收入儲存失敗：",
+            error
+          );
+
+          await replyMessage(
+            event.replyToken,
+            "😵 收入儲存失敗。"
+          );
+        }
+
+        continue;
+      }
+
+
+      // ======================================================
+      // 轉帳
+      // ======================================================
+
+      const transfer =
+        parseTransfer(text);
+
+      if (transfer) {
+        try {
+          await saveTransfer(
+            groupId,
+            userId,
+            userName,
+            transfer.toName,
+            transfer.amount
+          );
+
+          await replyMessage(
+            event.replyToken,
+            [
+              "✅ 轉帳記錄成功！",
+              "",
+              `👤 ${userName}`,
+              `➡️ ${transfer.toName}`,
+              `💰 $${transfer.amount.toLocaleString()}`
+            ].join("\n")
+          );
+
+        } catch (error) {
+          console.error(
+            "轉帳儲存失敗：",
+            error
+          );
+
+          await replyMessage(
+            event.replyToken,
+            "😵 轉帳儲存失敗。"
+          );
+        }
+
+        continue;
+      }
+
+
+      // ======================================================
+      // 一般記帳
+      // ======================================================
+
+      const lines = text
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const parsedRecords = [];
+
+      for (const line of lines) {
+        const parsed =
+          parseExpenseLine(line);
+
+        if (parsed) {
+          parsedRecords.push(parsed);
+        }
+      }
+
+      if (parsedRecords.length === 0) {
+        continue;
+      }
+
+
+      // ======================================================
+      // 儲存多筆支出
+      // ======================================================
+
+      const savedRecords = [];
+
+      try {
+        for (const record of parsedRecords) {
+          const saved =
+            await saveExpense(
+              groupId,
+              userId,
+              userName,
+              record,
+              text
+            );
+
+          savedRecords.push(saved);
+        }
+
+        await replyMessage(
+          event.replyToken,
+          formatSavedExpenses(
+            savedRecords
+          )
+        );
+
+      } catch (error) {
         console.error(
-          "Supabase 寫入失敗：",
+          "支出儲存失敗：",
           error
         );
 
-        replyText =
-          "⚠️ 記帳失敗了！\n\n" +
-          "資料庫目前沒有成功收到這筆資料。\n" +
-          "請稍後再試。";
-
-      } else {
-
-        // ====================
-        // 計算本次合計
-        // ====================
-
-        const total =
-          records.reduce(
-            (sum, record) =>
-              sum + record.amount,
-            0
-          );
-
-        replyText =
-          "💰 記帳成功！\n\n";
-
-        for (const record of records) {
-
-          replyText +=
-            `${record.category === "飲食" ? "🍴" :
-              record.category === "運動" ? "💪" :
-              record.category === "日用品" ? "🛒" :
-              record.category === "交通" ? "🚗" :
-              record.category === "房租" ? "🏠" :
-              record.category === "醫療" ? "💊" :
-              record.category === "娛樂" ? "🎮" :
-              record.category === "服裝" ? "👗" :
-              record.category === "社交" ? "🍺" :
-              record.category === "禮物" ? "🎁" :
-              record.category === "美容" ? "💈" :
-              "💰"} ` +
-            `${record.item}　` +
-            `${record.amount.toLocaleString()} 元\n`;
-
-          if (record.payer_name === "KC") {
-
-            replyText +=
-              `　💳 KC 付款\n`;
-
-          } else {
-
-            replyText +=
-              `　💳 ${record.payer_name} 付款\n`;
-          }
-        }
-
-        replyText +=
-          "\n━━━━━━━━━━\n";
-
-        replyText +=
-          `💰 本次合計　${total.toLocaleString()} 元`;
-
-        if (invalidLines.length > 0) {
-
-          replyText +=
-            "\n\n⚠️ 以下內容無法辨識：\n";
-
-          replyText +=
-            invalidLines.join("\n");
-        }
+        await replyMessage(
+          event.replyToken,
+          "😵 記帳失敗，資料沒有成功存入資料庫。"
+        );
       }
     }
 
-    // ====================
-    // 回覆 LINE
-    // ====================
-
-    try {
-
-      const response =
-        await fetch(
-          "https://api.line.me/v2/bot/message/reply",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization":
-                `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
-            },
-
-            body: JSON.stringify({
-              replyToken:
-                event.replyToken,
-
-              messages: [
-                {
-                  type: "text",
-                  text: replyText
-                }
-              ]
-            })
-          }
-        );
-
-      const result =
-        await response.text();
-
-      console.log(
-        "LINE 回覆結果：",
-        response.status,
-        result
-      );
-
-    } catch (error) {
-
-      console.error(
-        "LINE 回覆失敗：",
-        error
-      );
-    }
+  } catch (error) {
+    console.error(
+      "Webhook 處理錯誤：",
+      error
+    );
   }
-
-  res.sendStatus(200);
 });
 
-// ====================
+
+// ============================================================
 // 首頁
-// ====================
+// ============================================================
 
 app.get("/", (req, res) => {
-
   res.send(
     "錢錢研究所💰 已啟動！"
   );
 });
 
-// ====================
-// 啟動伺服器
-// ====================
 
-const PORT =
-  process.env.PORT || 3000;
+// ============================================================
+// 啟動
+// ============================================================
 
 app.listen(PORT, () => {
-
   console.log(
-    `錢錢研究所💰 正在運作，Port: ${PORT}`
+    `錢錢研究所💰 啟動於 port ${PORT}`
   );
 });
