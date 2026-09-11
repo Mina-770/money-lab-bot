@@ -13,47 +13,99 @@ app.post("/webhook", async (req, res) => {
   const events = req.body.events || [];
 
   for (const event of events) {
-    // 只處理文字訊息
     if (event.type === "message" && event.message.type === "text") {
       const userMessage = event.message.text.trim();
 
       console.log("使用者說：", userMessage);
 
-      // 嘗試抓取最後面的金額
-      const match = userMessage.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/);
+      // 一則訊息可以包含多筆記帳
+      const lines = userMessage
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
 
-      let replyText;
+      const records = [];
+      const invalidLines = [];
 
-      if (match) {
-        const item = match[1];
-        const amount = match[2];
+      for (const line of lines) {
+        // 支援：
+        // 晚餐120
+        // 晚餐 120
+        // 晚餐120元
+        // 晚餐 120元
+        const match = line.match(/^(.+?)\s*(\d+(?:\.\d+)?)\s*元?$/);
 
-        replyText = `✅ 已記帳\n${item}｜${amount} 元`;
+        if (match) {
+          const item = match[1].trim();
+          const amount = Number(match[2]);
+
+          records.push({
+            item,
+            amount
+          });
+        } else {
+          invalidLines.push(line);
+        }
+      }
+
+      let replyText = "";
+
+      if (records.length > 0) {
+        const total = records.reduce(
+          (sum, record) => sum + record.amount,
+          0
+        );
+
+        replyText = "✅ 已記帳\n\n";
+
+        for (const record of records) {
+          replyText += `🧾 ${record.item}｜${record.amount} 元\n`;
+        }
+
+        replyText += `\n💰 共 ${total} 元`;
+
+        if (invalidLines.length > 0) {
+          replyText += "\n\n⚠️ 以下格式看不懂：\n";
+          replyText += invalidLines.join("\n");
+        }
+
       } else {
-        replyText = `我看不懂這筆記帳 😅\n請用「項目 金額」的格式，例如：\n晚餐 120`;
+        replyText =
+          "我看不懂這筆記帳 😅\n\n" +
+          "例如：\n" +
+          "晚餐120\n" +
+          "晚餐 120\n" +
+          "晚餐120元";
       }
 
       try {
-        const response = await fetch("https://api.line.me/v2/bot/message/reply", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
-          },
-          body: JSON.stringify({
-            replyToken: event.replyToken,
-            messages: [
-              {
-                type: "text",
-                text: replyText
-              }
-            ]
-          })
-        });
+        const response = await fetch(
+          "https://api.line.me/v2/bot/message/reply",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify({
+              replyToken: event.replyToken,
+              messages: [
+                {
+                  type: "text",
+                  text: replyText
+                }
+              ]
+            })
+          }
+        );
 
         const result = await response.text();
 
-        console.log("LINE 回覆結果：", response.status, result);
+        console.log(
+          "LINE 回覆結果：",
+          response.status,
+          result
+        );
 
       } catch (error) {
         console.error("LINE 回覆失敗：", error);
