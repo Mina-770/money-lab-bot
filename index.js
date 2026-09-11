@@ -15,9 +15,23 @@ app.post("/webhook", async (req, res) => {
   for (const event of events) {
     // 只處理文字訊息
     if (event.type === "message" && event.message.type === "text") {
-      const userMessage = event.message.text;
+      const userMessage = event.message.text.trim();
 
       console.log("使用者說：", userMessage);
+
+      // 嘗試抓取最後面的金額
+      const match = userMessage.match(/^(.+?)\s+(\d+(?:\.\d+)?)$/);
+
+      let replyText;
+
+      if (match) {
+        const item = match[1];
+        const amount = match[2];
+
+        replyText = `✅ 已記帳\n${item}｜${amount} 元`;
+      } else {
+        replyText = `我看不懂這筆記帳 😅\n請用「項目 金額」的格式，例如：\n晚餐 120`;
+      }
 
       try {
         const response = await fetch("https://api.line.me/v2/bot/message/reply", {
@@ -31,13 +45,14 @@ app.post("/webhook", async (req, res) => {
             messages: [
               {
                 type: "text",
-                text: `收到！你說的是：「${userMessage}」💰`
+                text: replyText
               }
             ]
           })
         });
 
         const result = await response.text();
+
         console.log("LINE 回覆結果：", response.status, result);
 
       } catch (error) {
