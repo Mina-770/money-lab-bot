@@ -1,0 +1,12 @@
+{
+  "name": "money-lab-bot",
+  "version": "1.0.0",
+  "description": "錢錢研究所 LINE Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
